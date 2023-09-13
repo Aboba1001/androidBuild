@@ -229,8 +229,15 @@ class PlayState extends MusicBeatState
 	public var songHits:Int = 0;
 	public var songMisses:Int = 0;
 	public var scoreTxt:FlxText;
+
+	var allNotesMs:Float = 0;
+	var averageMs:Float = 0;
+	
 	var timeTxt:FlxText;
 	var scoreTxtTween:FlxTween;
+
+	var msTimeTxt:FlxText;
+	var msTimeTxtTween:FlxTween;
 
 	public static var campaignScore:Int = 0;
 	public static var campaignMisses:Int = 0;
@@ -836,6 +843,14 @@ class PlayState extends MusicBeatState
 		add(timeTxt);
 		timeBarBG.sprTracker = timeBar;
 
+                msTimeTxt = new FlxText(0, 0, 400, "", 32);
+		msTimeTxt.setFormat(Paths.font('vcr.ttf'), 32, 0xFFAC75FF, CENTER, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		msTimeTxt.scrollFactor.set();
+		msTimeTxt.alpha = 0;
+		msTimeTxt.visible = true;
+		msTimeTxt.borderSize = 2;
+		add(msTimeTxt);
+
 		strumLineNotes = new FlxTypedGroup<StrumNote>();
 		add(strumLineNotes);
 		add(grpNoteSplashes);
@@ -956,6 +971,7 @@ class PlayState extends MusicBeatState
 		scoreTxt.cameras = [camHUD];
 		botplayTxt.cameras = [camHUD];
 		timeBar.cameras = [camHUD];
+                msTimeTxt.cameras = [camHUD];
 		timeBarBG.cameras = [camHUD];
 		timeTxt.cameras = [camHUD];
 		doof.cameras = [camHUD];
@@ -1358,6 +1374,22 @@ class PlayState extends MusicBeatState
 			setOnLuas('startedCountdown', true);
 
 			var swagCounter:Int = 0;
+
+			if (ClientPrefs.showMsText) {
+				if (ClientPrefs.downScroll) {
+					msTimeTxt.x = playerStrums.members[1].x-100;
+					msTimeTxt.y = playerStrums.members[1].y+100;
+				} else {
+					msTimeTxt.x = playerStrums.members[1].x-100;
+					msTimeTxt.y = playerStrums.members[1].y-50;
+				}
+
+				if (ClientPrefs.middleScroll) {
+					msTimeTxt.x = playerStrums.members[0].x-250;
+					msTimeTxt.y = playerStrums.members[1].y+30;
+				}
+			}
+			
 
 			startTimer = new FlxTimer().start(Conductor.crochet / 1000, function(tmr:FlxTimer)
 			{
@@ -3170,6 +3202,21 @@ class PlayState extends MusicBeatState
 	}
 
 	private function popUpScore(note:Note = null):Void
+	{
+		var noteDiff:Float = Math.abs(note.strumTime - Conductor.songPosition + ClientPrefs.ratingOffset);
+		allNotesMs += noteDiff;
+		averageMs = allNotesMs/songHits;
+		if (ClientPrefs.showMsText) {
+			msTimeTxt.alpha = 1;
+			msTimeTxt.text =Std.string(Math.round(noteDiff)) + "ms";
+			if (msTimeTxtTween != null){
+				msTimeTxtTween.cancel(); msTimeTxtTween.destroy(); // top 10 awesome code
+			}
+			msTimeTxtTween = FlxTween.tween(msTimeTxt, {alpha: 0}, 0.25, {
+				onComplete: function(tw:FlxTween) {msTimeTxtTween = null;}, startDelay: 0.7
+			});
+		}
+		
 	{
 		var noteDiff:Float = Math.abs(note.strumTime - Conductor.songPosition + 8); 
 
